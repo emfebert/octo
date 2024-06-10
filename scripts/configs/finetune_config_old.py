@@ -14,18 +14,18 @@ def get_config(config_string="full,multimodal"):
     # and second image key should be the wrist view (None if not used)
 
     FINETUNING_KWARGS = {
-        "name": "act_dataset",
-        "data_dir": "/home/febert/tensorflow_datasets",
-        "image_obs_keys": {"primary": None, "wrist": "image_wrist"},
-        "state_obs_keys": ["state"],
+        "name": "bridge_dataset",
+        "data_dir": "./tests/debug_dataset",
+        "image_obs_keys": {"primary": "image_0", "wrist": None},
+        "state_obs_keys": ["state", None],
         "language_key": "language_instruction",
         "action_proprio_normalization_type": "normal",
         # All actions are relative deltas, except for the last one (gripper) which is absolute
         # Specifying this is only necessary if you want to predict > 1 step into the future
-        "absolute_action_mask": [False, False, False, True, True, True, True, True, True, True],
+        "absolute_action_mask": [False, False, False, False, False, False, True],
         # standardize_fn is dynamically loaded from a file
         # for example: "experiments/kevin/custom_standardization_transforms.py:aloha_dataset_transform"
-        "standardize_fn": "octo/data/oxe/oxe_standardization_transforms.py:act_dataset_transform",
+        "standardize_fn": "octo/data/oxe/oxe_standardization_transforms.py:bridge_dataset_transform",
         # If the default data loading speed is too slow, try these:
         # "num_parallel_reads": 8,  # for reading from disk / GCS
         # "num_parallel_calls": 16,  # for initial dataset construction

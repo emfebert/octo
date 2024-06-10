@@ -90,6 +90,11 @@ def main(_):
             time=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
         )
         wandb_id = jax_utils.host_broadcast_str(wandb_id)
+
+        os.environ['WANDB_API_KEY'] = '0d98919f1dac74f61fae02938822ece99e40d095'
+        os.environ['WANDB_USER_EMAIL'] = 'febert@emancro.ai'
+        os.environ['WANDB_USERNAME'] ='febert1'
+        os.environ["WANDB_MODE"] = "online"
         if jax.process_index() == 0:
             wandb.init(
                 config=FLAGS.config.to_dict(),

@@ -1,5 +1,8 @@
 """Defines dataset mixtures and weights for the Open X-Embodiment Datasets."""
 
+ACT_FULL = [
+    ("insert_ibuprofen", 1.0),
+]
 
 BRIDGE_MIX = [
     ("bridge_dataset", 1.0),
@@ -133,4 +136,5 @@ OXE_NAMED_MIXES = {
     "rtx": RT_X_MIX,
     "rtx_franka": RT_X_MIX + OXE_FRANKA_MIX,
     "oxe_magic_soup": OXE_MAGIC_SOUP,
+    "act_full": ACT_FULL
 }

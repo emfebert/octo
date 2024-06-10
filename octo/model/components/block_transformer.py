@@ -179,6 +179,7 @@ class BlockTransformer(nn.Module):
         output = Transformer(**self.transformer_kwargs)(
             input_tokens, attention_mask, train=train
         )
+        # jax.debug.breakpoint()
 
         # Split output into prefix and timestep groups
         all_prefix_outputs, all_timestep_outputs = self.split_output_tokens(

@@ -269,6 +269,9 @@ class OctoTransformer(nn.Module):
             self.transformer_kwargs.get("add_position_embedding", False) is False
         ), "Already added positional embeddings to the tokens"
 
+        # debug breakpoint
+        # jax.debug.breakpoint()
+        
         prefix_outputs, timestep_outputs = BlockTransformer(self.transformer_kwargs)(
             all_prefix_groups,
             all_timestep_groups,

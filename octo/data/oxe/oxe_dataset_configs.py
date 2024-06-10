@@ -27,6 +27,7 @@ class StateEncoding(IntEnum):
     POS_QUAT = 2  # EEF XYZ + quaternion + gripper open/close
     JOINT = 3  # 7 x joint angles (padding added if fewer) + gripper open/close
     JOINT_BIMANUAL = 4  # 2 x [6 x joint angles + gripper open/close]
+    EEF_ABSXYZ_ABSROTR6 = 5  # EEF absolute XYZ + absolute r6
 
 
 class ActionEncoding(IntEnum):
@@ -35,9 +36,17 @@ class ActionEncoding(IntEnum):
     EEF_POS = 1  # EEF delta XYZ + roll-pitch-yaw + gripper open/close
     JOINT_POS = 2  # 7 x joint delta position + gripper open/close
     JOINT_POS_BIMANUAL = 3  # 2 x [6 x joint pos + gripper]
+    EEF_DELTAXYZ_ABSROTR6 = 4  # EEF delta XYZ + absolute r6 + suction on/off
 
 
 OXE_DATASET_CONFIGS = {
+    "insert_ibuprofen": {
+        "image_obs_keys": {"primary": None, "secondary": None, "wrist": "image_wrist"},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["state"],
+        "state_encoding": StateEncoding.EEF_ABSXYZ_ABSROTR6,
+        "action_encoding": ActionEncoding.EEF_DELTAXYZ_ABSROTR6,
+    },
     "fractal20220817_data": {
         "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
         "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},

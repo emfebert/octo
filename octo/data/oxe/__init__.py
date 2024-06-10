@@ -30,16 +30,13 @@ def make_oxe_dataset_kwargs(
         action_proprio_normalization_type: Normalization type to use for proprioceptive actions.
     """
     dataset_kwargs = copy.deepcopy(OXE_DATASET_CONFIGS[name])
-    if dataset_kwargs["action_encoding"] is not ActionEncoding.EEF_POS:
-        raise ValueError(
-            f"Cannot load {name} since only EEF pose delta action encoding is supported."
-        )
+    assert dataset_kwargs["action_encoding"] == ActionEncoding.EEF_DELTAXYZ_ABSROTR6
 
-    # with EEF_POS actions, only the last action dimension (the gripper) is absolute
-    dataset_kwargs["absolute_action_mask"] = [False] * 6 + [True]
+    # relatiive EEF_POS actions, absolute r6 rotation, the last action dimension (the gripper) is also absolute
+    dataset_kwargs["absolute_action_mask"] = [False] * 3 + [True]*6 + [True]
 
     # we also want to skip normalizing the gripper action
-    dataset_kwargs["action_normalization_mask"] = [True] * 6 + [False]
+    dataset_kwargs["action_normalization_mask"] = [True] * 9 + [False]
 
     # adjust loaded camera views
     if missing_keys := (set(load_camera_views) - set(dataset_kwargs["image_obs_keys"])):

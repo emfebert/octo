@@ -322,10 +322,34 @@ class OctoModel:
 
         if jax.process_index() == 0:
             # save config
+
+            import copy
+            mod_config = copy.deepcopy(self.config)
+
+            def print_type_recursive(d):
+                for k, v in d.items():
+                    if isinstance(v, dict):
+                        print_type_recursive(v)
+                    elif isinstance(v, list):
+                        for i, x in enumerate(v):
+                            print('list', i, type(x))
+                            if isinstance(x, dict):
+                                print_type_recursive(x)
+                            else:
+                                print(f"{k}[{i}]: {type(x)}")
+                    else:
+                        print(f"{k}: {type(v)}")
+
+            # replace function with function name
+            for dataset in mod_config['dataset_kwargs']['dataset_kwargs_list']:
+                dataset['standardize_fn'] = dataset['standardize_fn'].__name__
+
+            # print_type_recursive(mod_config)
+
             config_path = tf.io.gfile.join(checkpoint_path, "config.json")
             if not tf.io.gfile.exists(config_path):
                 with tf.io.gfile.GFile(config_path, "w") as f:
-                    json.dump(self.config, f)
+                    json.dump(mod_config, f)
 
             # save example batch
             example_batch_path = tf.io.gfile.join(

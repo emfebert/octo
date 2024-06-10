@@ -262,7 +262,7 @@ def freeze_weights(
 
     logging.debug("Frozen params:")
     flax.traverse_util.path_aware_map(
-        lambda path, opt_status: logging.debug(".".join(path))
+        lambda path, opt_status: logging.info(".".join(path))
         if opt_status == "frozen"
         else None,
         param_partitions,

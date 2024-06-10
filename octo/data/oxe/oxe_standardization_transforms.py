@@ -24,6 +24,9 @@ from octo.data.utils.data_utils import (
 )
 
 
+def insert_ibuprofen_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
+    return trajectory
+
 def bridge_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     # NOTE: this is not actually the official OXE copy of bridge, it is our own more up-to-date copy that you
     # can find at https://rail.eecs.berkeley.edu/datasets/bridge_release/data/tfds/
@@ -795,6 +798,7 @@ def gnm_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
 
 
 OXE_STANDARDIZATION_TRANSFORMS = {
+    "insert_ibuprofen" : insert_ibuprofen_dataset_transform,
     "bridge_dataset": bridge_dataset_transform,
     "fractal20220817_data": rt1_dataset_transform,
     "kuka": kuka_dataset_transform,

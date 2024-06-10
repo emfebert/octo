@@ -529,6 +529,7 @@ def make_interleaved_dataset(
         dataset_sizes.append(per_dataset_stats["num_transitions"])
         all_dataset_statistics.append(per_dataset_stats)
 
+    print('dataset_sizes', dataset_sizes)
     # balance and normalize weights
     if balance_weights:
         sample_weights = np.array(sample_weights) * np.array(dataset_sizes)
@@ -568,6 +569,8 @@ def make_interleaved_dataset(
         datasets.append(dataset)
 
     # interleave at the frame level and then shuffle
+        
+    
     dataset: dl.DLataset = dl.DLataset.sample_from_datasets(
         datasets, sample_weights
     ).shuffle(shuffle_buffer_size)
