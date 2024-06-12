@@ -1,0 +1,46 @@
+FROM condaforge/miniforge3:latest
+
+# Set the environment variable DEBIAN_FRONTEND to noninteractive to prevent 
+# prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update the package list and install necessary packages
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    vim \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# Set the working directory
+WORKDIR /app
+# Copy the requirements_eval file from the local folder to the container
+COPY requirements_eval.txt /app/requirements_eval.txt
+
+
+# Create a new environment with Python 3.10 using mamba
+RUN mamba create -n octo python=3.10
+
+# Activate the environment and install TensorFlow with CUDA support
+RUN /bin/bash -c "source activate octo && \
+    python -m pip install tensorflow[and-cuda]==2.14.0 && \
+    python -c \"import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))\""
+
+# Install cudnn and the specific CUDA version
+RUN /bin/bash -c "source activate octo && \
+    mamba install cudnn=8.8 cuda-version=11.8"
+
+# Install JAX with CUDA support
+RUN /bin/bash -c "source activate octo && \
+    pip install --upgrade \"jax[cuda11_pip]==0.4.20\" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
+
+
+# Install the Python packages listed in requirements_eval.txt
+RUN /bin/bash -c "source activate octo && pip install -r /app/requirements_eval.txt"
+
+# Set the default command to start a shell in the octo environment
+CMD ["/bin/bash"]
