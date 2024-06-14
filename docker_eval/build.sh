@@ -1,2 +1,2 @@
 cd ..
-docker build -f docker/dockerfile_mamba_root -t jax_mamba_root:latest .
+docker build -f docker_eval/dockerfile_mamba_eval -t jax_mamba_eval:latest .
