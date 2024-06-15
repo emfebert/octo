@@ -87,8 +87,8 @@ def get_config(
             ),
             viz_kwargs=dict(
                 eval_batch_size=4,  #################
-                trajs_for_metrics=0, #100,
-                trajs_for_viz=0, #8,
+                trajs_for_metrics=3, #100,
+                trajs_for_viz=3, #8,
                 samples_per_state=8,
             ),
             resume_path=placeholder(str),
