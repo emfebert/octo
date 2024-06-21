@@ -25,6 +25,10 @@ from octo.data.utils.data_utils import (
 
 
 def insert_ibuprofen_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
+    trajectory["observation"]["EEF_state"] = trajectory["observation"]["state"][:, :6]
+    trajectory["observation"]["gripper_state"] = trajectory["observation"]["state"][
+        :, -1:
+    ]
     return trajectory
 
 def bridge_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
