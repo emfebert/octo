@@ -473,10 +473,11 @@ def plot_trajectory_actions(
     pred_actions, actions, proprio = unnorm_pred_actions, unnorm_actions, unnorm_proprio
 
     # TODO: make this less hardcoded
-    proprio = np.concatenate(
-        [proprio[..., 1:7], proprio[..., -1:]], axis=-1
-    )  # extract proprio
-
+    proprio = proprio[..., :3] # only use xyz
+    actions = actions[..., :3] # only use xyz
+    pred_actions = pred_actions[..., :3]# only use xyz
+    pred_actions *= 1000 # convert to mm units, as this is use for proprioceptive
+    
     fig = go.Figure()
     fig.add_trace(
         go.Scatter3d(
@@ -494,7 +495,10 @@ def plot_trajectory_actions(
 
     last_plotted = 0
     for i in range(len(actions) - 1):
-        visible = np.linalg.norm((proprio[i] - proprio[last_plotted])[:3]) > 0.05
+        thresh = 0
+        # visible = np.linalg.norm((proprio[i] - proprio[last_plotted])[:3]) > thresh
+        visible = True
+
         visible = visible or (i == 0)
         if visible:
             last_plotted = i

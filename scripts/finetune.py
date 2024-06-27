@@ -112,6 +112,10 @@ def main(_):
         name=name,
         time=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
     )
+
+    os.environ['WANDB_API_KEY'] = '0d98919f1dac74f61fae02938822ece99e40d095'
+    os.environ['WANDB_USER_EMAIL'] = 'febert@emancro.ai'
+    os.environ['WANDB_USERNAME'] ='febert1'
     wandb.init(
         config=FLAGS.config.to_dict(),
         id=wandb_id,
