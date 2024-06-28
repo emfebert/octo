@@ -104,6 +104,13 @@ class HistoryWrapper(gym.Wrapper):
         self.num_obs += 1
         self.history.append(obs)
         assert len(self.history) == self.horizon
+        for t, obs in enumerate(self.history):
+            print('history:', t)
+            for k, value in obs.items():
+                if isinstance(value, np.ndarray):
+                    print(k, obs[k].shape)  
+                else:
+                    print(k, obs[k])
         full_obs = stack_and_pad(self.history, self.num_obs)
 
         return full_obs, reward, done, trunc, info

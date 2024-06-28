@@ -14,18 +14,18 @@ import time
 from absl import app, flags, logging
 import click
 import cv2
-from octo.envs.easo_env import EasoGymEnv
 import imageio
 import jax
 import jax.numpy as jnp
 import numpy as np
 
 from octo.model.octo_model import OctoModel
-from octo.utils.gym_wrappers import (
-    HistoryWrapper,
-    TemporalEnsembleWrapper,
-    UnnormalizeActionProprio,
-)
+from octo.utils.gym_wrappers import HistoryWrapper, TemporalEnsembleWrapper
+from octo.utils.train_callbacks import supply_rng
+
+import json
+
+from octo.envs.easo_env import EasoGymEnvRel
 
 np.set_printoptions(suppress=True)
 
@@ -39,38 +39,55 @@ flags.DEFINE_string(
 flags.DEFINE_integer("checkpoint_step", None, "Checkpoint step", required=True)
 
 
-flags.DEFINE_string("video_save_path", None, "Path to save video")
 flags.DEFINE_integer("num_timesteps", 120, "num timesteps")
-flags.DEFINE_integer("horizon", 2, "Observation history length")
-flags.DEFINE_integer("pred_horizon", 1, "Length of action sequence from model")
-flags.DEFINE_integer("exec_horizon", 1, "Length of action sequence to execute")
+flags.DEFINE_integer("window_size", 1, "Observation history length")
+flags.DEFINE_integer(
+    "action_horizon", 4, "Length of action sequence to execute/ensemble"
+)
 
 
 # show image flag
 flags.DEFINE_bool("show_image", False, "Show image")
 
+##############################################################################
+
+STEP_DURATION_MESSAGE = """
+Bridge data was collected with non-blocking control and a step duration of 0.2s.
+However, we relabel the actions to make it look like the data was collected with
+blocking control and we evaluate with blocking control.
+Be sure to use a step duration of 0.2 if evaluating with non-blocking control.
+"""
+STEP_DURATION = 0.2
+STICKY_GRIPPER_NUM_STEPS = 1
+WORKSPACE_BOUNDS = [[0.1, -0.15, -0.01, -1.57, 0], [0.45, 0.25, 0.25, 1.57, 0]]
+CAMERA_TOPICS = [{"name": "/blue/image_raw"}]
+ENV_PARAMS = {
+    "camera_topics": CAMERA_TOPICS,
+    "override_workspace_boundaries": WORKSPACE_BOUNDS,
+    "move_duration": STEP_DURATION,
+}
+
+##############################################################################
 
 
 def main(_):
-    env = EasoGymEnv()
-    
+
+    env = EasoGymEnvRel()
+
     # load models
     model = OctoModel.load_pretrained(
         FLAGS.checkpoint_weights_path,
         FLAGS.checkpoint_step,
-    )
+    )    
 
     # wrap the robot environment
-    env = UnnormalizeActionProprio(
-        env, model.dataset_statistics["insert_ibuprofen"], normalization_type="normal"
-    )
-    env = HistoryWrapper(env, FLAGS.horizon)
-    # env = TemporalEnsembleWrapper(env, FLAGS.pred_horizon)
+    env = HistoryWrapper(env, FLAGS.window_size)
+    # env = TemporalEnsembleWrapper(env, FLAGS.action_horizon)
     # switch TemporalEnsembleWrapper with RHCWrapper for receding horizon control
-    # env = RHCWrapper(env, FLAGS.exec_horizon)
+    # env = RHCWrapper(env, FLAGS.action_horizon)
 
-    # create policy function
-    @jax.jit
+    # create policy functions
+    
     def sample_actions(
         pretrained_model: OctoModel,
         observations,
@@ -83,97 +100,38 @@ def main(_):
             observations,
             tasks,
             rng=rng,
+            unnormalization_statistics=pretrained_model.dataset_statistics["action"],
         )
         # remove batch dim
         return actions[0]
-
-    def supply_rng(f, rng=jax.random.PRNGKey(0)):
-        def wrapped(*args, **kwargs):
-            nonlocal rng
-            rng, key = jax.random.split(rng)
-            return f(*args, rng=key, **kwargs)
-
-        return wrapped
+    
+    env.set_proprio_statistics(model.dataset_statistics["proprio"])
 
     policy_fn = supply_rng(
         partial(
             sample_actions,
             model,
+            # argmax=FLAGS.deterministic,
+            # temperature=FLAGS.temperature,
         )
     )
-
-    query_freq = 30 # same as pred_horizon
+    
     
 
     # goal sampling loop
     while True:
         
-        # Format task for the model
-        task = model.create_tasks(texts=['blank'])
+        env.pre_position()
         
-        # input("Press [Enter] to start.")
-        # env.pre_position()
+        text = 'blank'
+        # Format task for the model
+        task = model.create_tasks(texts=[text])
 
         # reset env
         obs, _ = env.reset()
-        
-        
-        
-        # import matplotlib.pyplot as plt
-        # print("obs image")
-        # plt.imshow(obs['image_wrist'][0])
-        # plt.show()
-        
-        
-        import tensorflow as tf
-        import flax
-        # load example batch
-        with tf.io.gfile.GFile(
-            tf.io.gfile.join(FLAGS.checkpoint_weights_path, "example_batch.msgpack"), "rb"
-        ) as f:
-            example_batch = flax.serialization.msgpack_restore(f.read())
-        # print('example batch', example_batch)
-        
-        example_observations = example_batch['observation']
-        example_task = example_batch['task']
-        
-        
-        # def print_infos(dict_):
-        #     for key, value in dict_.items():
-        #         print(key)
-        #         if isinstance(value, dict):
-        #             print_infos(dict_)
-        #         else:
-        #             print(f'{key}  shape: {value.shape}, min {value.min()} max {value.max()}')
-        
-        
-        # print('env')
-        # print_infos(obs)        
-        # print_infos(task)
-        
-        # print('example')
-        # print_infos(example_observations)        
-        # print_infos(example_task)
-        
-        obs = example_batch['observation']
-        task = example_batch['task']        
-        obs = jax.tree_map(lambda x: x[0], obs)
-        
-        
-        # print("example batch image")
-        # import pdb; pdb.set_trace()
-        # plt.imshow(example_batch['observation']['image_wrist'][0, 0])
-        # plt.show()
-        
-        
-        
-        import pdb; pdb.set_trace()
-        
-        # import pdb; pdb.set_trace()
         time.sleep(2.0)
 
         # do rollout
-        
         images = []
         goals = []
         t = 0
@@ -189,17 +147,14 @@ def main(_):
 
             # get action
             
-            if t % query_freq == 0:
+            if t % FLAGS.action_horizon == 0:
                 forward_pass_time = time.time()
                 action = np.array(policy_fn(obs, task), dtype=np.float64)
-                
-                print('action unnormalized: ', action[0])
                 print("forward pass time: ", time.time() - forward_pass_time)
-                import pdb; pdb.set_trace()
 
             # perform environment step
             start_time = time.time()
-            obs, _, _, truncated, _ = env.step(action[t % query_freq])
+            obs, _, _, truncated, _ = env.step(action[t % FLAGS.action_horizon])
             print("step time: ", time.time() - start_time)
 
             t += 1
@@ -208,15 +163,15 @@ def main(_):
                 break
 
         # save video
-        if FLAGS.video_save_path is not None:
-            os.makedirs(FLAGS.video_save_path, exist_ok=True)
-            curr_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            save_path = os.path.join(
-                FLAGS.video_save_path,
-                f"{curr_time}.mp4",
-            )
-            video = np.concatenate([np.stack(goals), np.stack(images)], axis=1)
-            imageio.mimsave(save_path, video, fps=1.0 / query_freq)
+        # if FLAGS.video_save_path is not None:
+        #     os.makedirs(FLAGS.video_save_path, exist_ok=True)
+        #     curr_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        #     save_path = os.path.join(
+        #         FLAGS.video_save_path,
+        #         f"{curr_time}.mp4",
+        #     )
+        #     video = np.concatenate([np.stack(goals), np.stack(images)], axis=1)
+        #     imageio.mimsave(save_path, video, fps=1.0 / STEP_DURATION * 3)
 
 
 if __name__ == "__main__":
